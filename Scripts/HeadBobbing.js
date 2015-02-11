@@ -5,6 +5,8 @@
  var bobbingAmount = 0.2; 
  var midpoint = 2.0; 
  
+ var clip : AudioSource;
+ 
  function FixedUpdate () { 
     var waveslice = 0.0; 
     var horizontal = Input.GetAxis("Horizontal"); 
@@ -16,9 +18,14 @@
        waveslice = Mathf.Sin(timer); 
        timer = timer + bobbingSpeed; 
        if (timer > Mathf.PI * 2) { 
-          timer = timer - (Mathf.PI * 2); 
+          timer = timer - (Mathf.PI * 2);   
        } 
     } 
+    
+    if(waveslice > 0.9) {
+    	audio.Play();
+    }
+    
     if (waveslice != 0) { 
        var translateChange = waveslice * bobbingAmount; 
        var totalAxes = Mathf.Abs(horizontal) + Mathf.Abs(vertical); 
@@ -27,6 +34,6 @@
        transform.localPosition.y = midpoint + translateChange; 
     } 
     else { 
-       transform.localPosition.y = midpoint; 
+       	transform.localPosition.y = midpoint; 
     } 
  }

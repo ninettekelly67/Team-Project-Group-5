@@ -9,14 +9,40 @@ public class PlayerCollisionHandler : MonoBehaviour {
 	// Flag for determining if the cursor is hovering over a collectable object (Battery etc.).
 	bool hoveringOverCollectable = false;
 	
+	bool canClimb = false;
+	bool topOfLadder = false;
+	
 	// Halo effect of the collectable object (If applied). Represents the glow effect when the mouse is hovered over a collectable object.
 	Behaviour halo = null;
+	
+	// Reference to the CharacterMotor.js script. we use this to disable character movements whilst we are climbing laddes.
+	CharacterMotor motor;
 	
 	void Start() {
 		Screen.lockCursor = true;
 		Screen.showCursor = true;
 		
+		// Disable the white capsule rendering that represents the player to prevent it clipping with the camera with head bobbing.
 		GetComponentInChildren<MeshRenderer>().enabled = false;
+		
+		motor = GetComponent<CharacterMotor>();
+	}
+	
+	void OnTriggerEnter(Collider collider) {
+		if(collider.tag == "Ladder_Base") {
+			canClimb = !canClimb;
+			motor.enabled = !canClimb;
+		}
+		
+		if(collider.tag == "Ladder_Top") {
+			topOfLadder = true;
+		}
+	}
+
+	void OnTriggerExit(Collider collider) {
+		if(collider.tag == "Ladder_Top") {
+			topOfLadder = false;
+		}
 	}
 
 	// Update is performed each frame.
@@ -26,6 +52,17 @@ public class PlayerCollisionHandler : MonoBehaviour {
 
 	// Fixed update is performed on each physic update (Delta time).
 	void FixedUpdate () {
+		Vector3 moveDirection = Vector3.zero;
+		if(canClimb) {
+			
+			if(Input.GetAxisRaw("Vertical") > 0.0f && !topOfLadder) {
+				transform.position += Vector3.up / 10f;
+			}
+			else if(Input.GetAxisRaw ("Vertical") < 0.0f) {
+				transform.position -= Vector3.up / 10f;
+			}
+		}
+		
 		Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0.0f));
 		RaycastHit hit;
 		
@@ -45,9 +82,9 @@ public class PlayerCollisionHandler : MonoBehaviour {
 					Destroy(hit.collider.gameObject);
 					hoveringOverCollectable = false;
 					halo.enabled = false;
-					LightHandler.batteryLife += Random.Range(15, 30);
-					Debug.Log("Picked up a battery. Battery life is now: " + LightHandler.batteryLife);
-				}	
+					// Add a random amount of battery life to the flashlight.
+					LightHandler.batteryLife += Random.Range(30, 45);
+				}
 			}
 		// There was no ray cast intersection within the rays trace distance.
 		} else {

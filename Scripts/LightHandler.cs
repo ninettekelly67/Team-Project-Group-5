@@ -25,7 +25,7 @@ public class LightHandler : MonoBehaviour {
 	// Drain the battery by a set amount each second.
 	void DrainBattery() {
 		batteryLife -= drainRate;
-		Debug.Log("Battery life drained: " + batteryLife);
+		//Debug.Log("Battery life drained: " + batteryLife);
 	}
 	
 	// Update is called once per frame
