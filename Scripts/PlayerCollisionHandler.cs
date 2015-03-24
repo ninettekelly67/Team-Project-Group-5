@@ -7,10 +7,11 @@ public class PlayerCollisionHandler : MonoBehaviour {
 	public Texture pickupIcon;
 	
 	// Flag for determining if the cursor is hovering over a collectable object (Battery etc.).
-	bool hoveringOverCollectable = false;
+	bool hoveringOverInteractable = false;
 	
-	bool canClimb = false;
-	bool topOfLadder = false;
+	bool canClimb;
+	bool topOfLadder;
+	bool hasKey;
 	
 	// Halo effect of the collectable object (If applied). Represents the glow effect when the mouse is hovered over a collectable object.
 	Behaviour halo = null;
@@ -19,8 +20,12 @@ public class PlayerCollisionHandler : MonoBehaviour {
 	CharacterMotor motor;
 	
 	void Start() {
-		Screen.lockCursor = true;
-		Screen.showCursor = true;
+		Cursor.lockState = CursorLockMode.Locked;
+		Cursor.visible = true;
+		
+		canClimb = false;
+		topOfLadder = false;
+		hasKey = false;
 		
 		// Disable the white capsule rendering that represents the player to prevent it clipping with the camera with head bobbing.
 		GetComponentInChildren<MeshRenderer>().enabled = false;
@@ -52,7 +57,6 @@ public class PlayerCollisionHandler : MonoBehaviour {
 
 	// Fixed update is performed on each physic update (Delta time).
 	void FixedUpdate () {
-		Vector3 moveDirection = Vector3.zero;
 		if(canClimb) {
 			
 			if(Input.GetAxisRaw("Vertical") > 0.0f && !topOfLadder) {
@@ -66,11 +70,11 @@ public class PlayerCollisionHandler : MonoBehaviour {
 		Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0.0f));
 		RaycastHit hit;
 		
-		// Perform a ray cast down the Z axis relative to the camera transform, with a distance of 2.
-		if(Physics.Raycast(ray, out hit, 2.0f)) {
+		// Perform a ray cast down the Z axis relative to the camera transform, with a distance of 2.5 units.
+		if(Physics.Raycast(ray, out hit, 2.5f)) {
 			// If the object the ray intersects with is a battery (Battery Tag)
 			if(hit.collider.tag == "Battery") {
-				hoveringOverCollectable = true;
+				hoveringOverInteractable = true;
 				
 				// Get the Halo effect component for the game object and enable it if the cursor is over it.
 				halo = (Behaviour)hit.collider.gameObject.GetComponent ("Halo");
@@ -80,17 +84,65 @@ public class PlayerCollisionHandler : MonoBehaviour {
 				if(Input.GetAxisRaw("Action") == 1) {
 					// Remove the game object from the scene.
 					Destroy(hit.collider.gameObject);
-					hoveringOverCollectable = false;
+					hoveringOverInteractable = false;
 					halo.enabled = false;
 					// Add a random amount of battery life to the flashlight.
-					LightHandler.batteryLife += Random.Range(30, 45);
+					LightHandler.AddBatteryLife(Random.Range(30, 45));
 				}
+			} else if(hit.collider.tag == "Clock") {
+				hoveringOverInteractable = true;
+				
+				// Get the Halo effect component for the game object and enable it if the cursor is over it.
+				halo = (Behaviour)hit.collider.gameObject.GetComponent ("Halo");
+				halo.enabled = true;
+				
+				// If the action button is pressed (Defined in InputManager under Axes). E on PC X on controller.
+				if(Input.GetAxisRaw("Action") == 1) {
+					// Remove the game object from the scene.
+					Destroy(hit.collider.gameObject);
+					hoveringOverInteractable = false;
+					halo.enabled = false;
+					GameManager.AddTime(Random.Range (10, 20));
+				}
+			} else if(hit.collider.tag == "Key") {
+				hoveringOverInteractable = true;
+				
+				// Get the Halo effect component for the game object and enable it if the cursor is over it.
+				halo = (Behaviour)hit.collider.gameObject.GetComponent ("Halo");
+				halo.enabled = true;
+				
+				// If the action button is pressed (Defined in InputManager under Axes). E on PC X on controller.
+				if(Input.GetAxisRaw("Action") == 1) {
+					// Remove the game object from the scene.
+					Destroy(hit.collider.gameObject);
+					hoveringOverInteractable = false;
+					halo.enabled = false;
+					hasKey = true;
+				}				
+			} else if(hit.collider.tag == "Door") {
+				hoveringOverInteractable = true;
+				
+				if(Input.GetAxisRaw ("Action") == 1) {
+					if(hit.collider.transform.localEulerAngles.y < 91.0f) {
+						hit.collider.gameObject.transform.localEulerAngles += new Vector3(0.0f, 2.5f, 0.0f);
+					}
+				}
+			} else if(hit.collider.tag == "DoorExit") {
+				hoveringOverInteractable = true;
+				
+				if(Input.GetAxisRaw("Action") == 1) {
+					hoveringOverInteractable = false;
+					if(hasKey) {
+						GameManager.gameOver = true;
+					}
+					
+				}
+			// There was no ray cast intersection within the rays trace distance.
+			} else {
+				hoveringOverInteractable = false;
+				if(halo != null)
+					halo.enabled = false;
 			}
-		// There was no ray cast intersection within the rays trace distance.
-		} else {
-			hoveringOverCollectable = false;
-			if(halo != null)
-				halo.enabled = false;
 		}
 	}
 	
@@ -100,7 +152,7 @@ public class PlayerCollisionHandler : MonoBehaviour {
 		GUI.Box (new Rect((Screen.width / 2) - 5, (Screen.height / 2) - 5, 10, 10), "");
 		
 		// Draw an indication to the user so they are aware they can pickup an object they are curently looking at.
-		if(hoveringOverCollectable) {
+		if(hoveringOverInteractable) {
 			GUI.DrawTexture(new Rect((Screen.width / 2) - 5, (Screen.height / 2) - 5, 48, 48), pickupIcon);
 		}
 	}

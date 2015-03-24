@@ -23,7 +23,7 @@
     } 
     
     if(waveslice > 0.9) {
-    	audio.Play();
+    	GetComponent.<AudioSource>().Play();
     }
     
     if (waveslice != 0) { 
