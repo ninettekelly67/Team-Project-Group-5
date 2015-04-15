@@ -6,6 +6,10 @@ public class PlayerCollisionHandler : MonoBehaviour {
 	// Store the texture rendered above the cursor when the player is able to pickup an object.
 	public Texture pickupIcon;
 	
+	// Store the mobile joystick which is used for movement (LEFT).
+	public CNAbstractController joyStickAxis;
+	public MobileTouchControls mobileControls;
+	
 	// Flag for determining if the cursor is hovering over a collectable object (Battery etc.).
 	bool hoveringOverInteractable = false;
 	
@@ -19,10 +23,9 @@ public class PlayerCollisionHandler : MonoBehaviour {
 	// Reference to the CharacterMotor.js script. we use this to disable character movements whilst we are climbing laddes.
 	CharacterMotor motor;
 	
+	bool isMobile = true;
+	
 	void Start() {
-		Cursor.lockState = CursorLockMode.Locked;
-		Cursor.visible = true;
-		
 		canClimb = false;
 		topOfLadder = false;
 		hasKey = false;
@@ -31,6 +34,14 @@ public class PlayerCollisionHandler : MonoBehaviour {
 		GetComponentInChildren<MeshRenderer>().enabled = false;
 		
 		motor = GetComponent<CharacterMotor>();
+		
+		#if !UNITY_EDITOR
+		if(Application.platform == RuntimePlatform.IPhonePlayer) {
+			isMobile = true;
+		} else {
+			isMobile = false;
+		}
+		#endif
 	}
 	
 	void OnTriggerEnter(Collider collider) {
@@ -41,6 +52,10 @@ public class PlayerCollisionHandler : MonoBehaviour {
 		
 		if(collider.tag == "Ladder_Top") {
 			topOfLadder = true;
+		}
+		
+		if(collider.tag == "Enemy") {
+			GameManager.EndGame();
 		}
 	}
 
@@ -59,10 +74,18 @@ public class PlayerCollisionHandler : MonoBehaviour {
 	void FixedUpdate () {
 		if(canClimb) {
 			
-			if(Input.GetAxisRaw("Vertical") > 0.0f && !topOfLadder) {
+			float verticalAxis = 0.0f;
+			
+			if(isMobile) {
+				verticalAxis = joyStickAxis.GetAxis("Vertical");
+			} else {
+				verticalAxis = Input.GetAxis ("Vertical");
+			}
+			Debug.Log ("VerticalAxis: " + verticalAxis);
+			if(verticalAxis > 0.0f && !topOfLadder) {
 				transform.position += Vector3.up / 10f;
 			}
-			else if(Input.GetAxisRaw ("Vertical") < 0.0f) {
+			else if(verticalAxis < 0.0f) {
 				transform.position -= Vector3.up / 10f;
 			}
 		}
@@ -72,6 +95,8 @@ public class PlayerCollisionHandler : MonoBehaviour {
 		
 		// Perform a ray cast down the Z axis relative to the camera transform, with a distance of 2.5 units.
 		if(Physics.Raycast(ray, out hit, 2.5f)) {
+			bool actionPressed = isMobile ? mobileControls.GetAction() : Input.GetAxisRaw("Action") == 1;
+		
 			// If the object the ray intersects with is a battery (Battery Tag)
 			if(hit.collider.tag == "Battery") {
 				hoveringOverInteractable = true;
@@ -81,7 +106,7 @@ public class PlayerCollisionHandler : MonoBehaviour {
 				halo.enabled = true;
 				
 				// If the action button is pressed (Defined in InputManager under Axes). E on PC X on controller.
-				if(Input.GetAxisRaw("Action") == 1) {
+				if(actionPressed) {
 					// Remove the game object from the scene.
 					Destroy(hit.collider.gameObject);
 					hoveringOverInteractable = false;
@@ -97,7 +122,7 @@ public class PlayerCollisionHandler : MonoBehaviour {
 				halo.enabled = true;
 				
 				// If the action button is pressed (Defined in InputManager under Axes). E on PC X on controller.
-				if(Input.GetAxisRaw("Action") == 1) {
+				if(actionPressed) {
 					// Remove the game object from the scene.
 					Destroy(hit.collider.gameObject);
 					hoveringOverInteractable = false;
@@ -112,7 +137,7 @@ public class PlayerCollisionHandler : MonoBehaviour {
 				halo.enabled = true;
 				
 				// If the action button is pressed (Defined in InputManager under Axes). E on PC X on controller.
-				if(Input.GetAxisRaw("Action") == 1) {
+				if(actionPressed) {
 					// Remove the game object from the scene.
 					Destroy(hit.collider.gameObject);
 					hoveringOverInteractable = false;
@@ -122,7 +147,7 @@ public class PlayerCollisionHandler : MonoBehaviour {
 			} else if(hit.collider.tag == "Door") {
 				hoveringOverInteractable = true;
 				
-				if(Input.GetAxisRaw ("Action") == 1) {
+				if(actionPressed) {
 					if(hit.collider.transform.localEulerAngles.y < 91.0f) {
 						hit.collider.gameObject.transform.localEulerAngles += new Vector3(0.0f, 2.5f, 0.0f);
 					}
@@ -130,7 +155,7 @@ public class PlayerCollisionHandler : MonoBehaviour {
 			} else if(hit.collider.tag == "DoorExit") {
 				hoveringOverInteractable = true;
 				
-				if(Input.GetAxisRaw("Action") == 1) {
+				if(actionPressed) {
 					hoveringOverInteractable = false;
 					if(hasKey) {
 						GameManager.gameOver = true;

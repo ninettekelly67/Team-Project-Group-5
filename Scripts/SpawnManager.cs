@@ -203,7 +203,7 @@ public class SpawnManager : MonoBehaviour {
 		doorSpawns.RemoveAt(spawnIndex);
 	}
 	
-	void SpawnPlayer() {
+	public void SpawnPlayer() {
 		Debug.Log ("Spawning player..");
 		
 		int spawnIndex = Random.Range (0, playerSpawns.Count);
